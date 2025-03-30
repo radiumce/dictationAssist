@@ -18,7 +18,6 @@ const resultPage = document.getElementById('result-page');
 const wordsInput = document.getElementById('words-input');
 const startDictationBtn = document.getElementById('start-dictation');
 const loadHistoryBtn = document.getElementById('load-history');
-const backToInputBtn = document.getElementById('back-to-input');
 const historyList = document.getElementById('history-list');
 const breadcrumbPath = document.getElementById('breadcrumb-path');
 
@@ -67,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 按钮事件监听 - 使用 debounce 防止快速连续点击
     startDictationBtn.addEventListener('click', () => debounceButton(startDictationBtn, startDictation));
     loadHistoryBtn.addEventListener('click', () => debounceButton(loadHistoryBtn, loadHistory));
-    backToInputBtn.addEventListener('click', () => debounceButton(backToInputBtn, backToInput));
     unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
     nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
     nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));
@@ -200,7 +198,7 @@ function showConfirmationPage() {
         .forEach(forgottenCount => {
             // 创建分组标题
             const groupTitle = document.createElement('div');
-            groupTitle.className = 'col-span-full font-semibold text-lg mt-2 mb-1';
+            groupTitle.className = 'col-span-full font-semibold text-lg mt-3 mb-2 text-neutral-darker';
             groupTitle.textContent = forgottenCount === 0 ? 
                 '已掌握的单词 (遗忘度: 0)' : 
                 `遗忘度 ${forgottenCount} 的单词`;
@@ -211,21 +209,21 @@ function showConfirmationPage() {
                 const wordItem = document.createElement('div');
                 
                 // 决定颜色: 遗忘度越高颜色越深
-                let bgColorClass = 'bg-gray-100';
+                let bgColorClass = 'bg-neutral-lightest';
                 if (word.isUnknown) {
-                    bgColorClass = 'bg-red-100';
+                    bgColorClass = 'bg-danger-light';
                 } else if (forgottenCount > 0) {
                     // 根据遗忘度设置不同深度的颜色
                     if (forgottenCount >= 3) {
-                        bgColorClass = 'bg-red-50';
+                        bgColorClass = 'bg-danger-light';
                     } else if (forgottenCount == 2) {
-                        bgColorClass = 'bg-yellow-50';
+                        bgColorClass = 'bg-neutral-light';
                     } else if (forgottenCount == 1) {
-                        bgColorClass = 'bg-green-50';
+                        bgColorClass = 'bg-success-light';
                     }
                 }
                 
-                wordItem.className = `p-2 border rounded ${bgColorClass} cursor-pointer`;
+                wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} cursor-pointer hover:shadow-sm transition`;
                 wordItem.textContent = `${word.word} (${word.forgottenCount})`;
                 wordItem.addEventListener('click', () => {
                     // 无论是否从历史记录进入，点击都应该添加到不会列表
@@ -237,8 +235,8 @@ function showConfirmationPage() {
                             word.forgottenCount += 1;
                         }
                         
-                        wordItem.classList.remove('bg-gray-100', 'bg-red-50', 'bg-yellow-50', 'bg-green-50');
-                        wordItem.classList.add('bg-red-100');
+                        wordItem.classList.remove('bg-neutral-lightest', 'bg-danger-light', 'bg-neutral-light', 'bg-success-light');
+                        wordItem.classList.add('bg-danger-light');
                         
                         // 如果不在不会列表中，添加到不会列表
                         if (!unknownWords.some(w => w.word === word.word)) {
@@ -347,16 +345,16 @@ function updateUnknownWordsList() {
         const wordItem = document.createElement('div');
         
         // 根据遗忘度设置不同深度的颜色
-        let bgColorClass = 'bg-red-100';
+        let bgColorClass = 'bg-danger-light';
         if (word.forgottenCount >= 3) {
-            bgColorClass = 'bg-red-200';
+            bgColorClass = 'bg-danger';
         } else if (word.forgottenCount == 2) {
-            bgColorClass = 'bg-red-100';
+            bgColorClass = 'bg-danger-light';
         } else if (word.forgottenCount == 1) {
-            bgColorClass = 'bg-red-50';
+            bgColorClass = 'bg-danger-light bg-opacity-50';
         }
         
-        wordItem.className = `p-2 border rounded ${bgColorClass}`;
+        wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} text-white`;
         wordItem.textContent = `${word.word} (${word.forgottenCount})`;
         unknownWordsList.appendChild(wordItem);
     });
@@ -394,7 +392,7 @@ function showResults() {
         .forEach(forgottenCount => {
             // 创建分组标题
             const groupTitle = document.createElement('div');
-            groupTitle.className = 'col-span-full font-semibold text-lg mt-2 mb-1';
+            groupTitle.className = 'col-span-full font-semibold text-lg mt-3 mb-2 text-neutral-darker';
             groupTitle.textContent = forgottenCount === 0 ? 
                 '已掌握的单词 (遗忘度: 0)' : 
                 `遗忘度 ${forgottenCount} 的单词`;
@@ -405,16 +403,16 @@ function showResults() {
                 const wordItem = document.createElement('div');
                 
                 // 决定颜色: 遗忘度越高颜色越深
-                let bgColorClass = 'bg-green-100';
+                let bgColorClass = 'bg-success-light';
                 if (forgottenCount >= 3) {
-                    bgColorClass = 'bg-red-200';
+                    bgColorClass = 'bg-danger';
                 } else if (forgottenCount == 2) {
-                    bgColorClass = 'bg-red-100';
+                    bgColorClass = 'bg-danger-light';
                 } else if (forgottenCount == 1) {
-                    bgColorClass = 'bg-yellow-100';
+                    bgColorClass = 'bg-neutral-light';
                 }
                 
-                wordItem.className = `p-2 border rounded ${bgColorClass}`;
+                wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} hover:shadow-sm transition`;
                 wordItem.textContent = `${word.word} (${word.forgottenCount})`;
                 resultWordsList.appendChild(wordItem);
             });
@@ -501,7 +499,7 @@ function loadHistory() {
             const dictations = getAllRequest.result;
             
             if (dictations.length === 0) {
-                historyList.innerHTML = '<p class="text-gray-500">暂无历史记录</p>';
+                historyList.innerHTML = '<p class="text-neutral-dark py-4 text-center">暂无历史记录</p>';
                 return;
             }
             
@@ -515,22 +513,22 @@ function loadHistory() {
                 const unknownCount = dictation.words.filter(w => w.forgottenCount > 0).length;
                 
                 const historyItem = document.createElement('div');
-                historyItem.className = 'p-4 border-b hover:bg-gray-50';
+                historyItem.className = 'p-4 border-b border-neutral-light hover:bg-neutral-lightest rounded-lg mb-2 transition';
                 
                 // 添加备注和主要信息
                 historyItem.innerHTML = `
                     <div class="flex justify-between items-center mb-2">
-                        <span class="font-medium">${date}</span>
-                        <span class="text-gray-500">共 ${wordCount} 个单词，不会 ${unknownCount} 个</span>
+                        <span class="font-medium text-neutral-darker">${date}</span>
+                        <span class="text-neutral-dark">共 ${wordCount} 个单词，不会 ${unknownCount} 个</span>
                     </div>
                     <div class="notes-container mb-2 ${dictation.notes ? '' : 'hidden'}">
-                        <p class="text-sm text-gray-600 italic">${dictation.notes || ''}</p>
+                        <p class="text-sm text-neutral italic bg-neutral-lightest p-2 rounded-lg">${dictation.notes || ''}</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <button class="view-btn bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-2 rounded-md transition">查看</button>
-                        <button class="copy-btn bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-2 rounded-md transition">复制</button>
-                        <button class="notes-btn bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 px-2 rounded-md transition">${dictation.notes ? '修改备注' : '添加备注'}</button>
-                        <button class="delete-btn bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-2 rounded-md transition">删除</button>
+                        <button class="view-btn bg-primary hover:bg-primary-dark text-white text-sm py-1.5 px-3 rounded-lg transition">查看</button>
+                        <button class="copy-btn bg-white border border-primary text-primary hover:bg-primary-light hover:text-primary-dark text-sm py-1.5 px-3 rounded-lg transition">复制</button>
+                        <button class="notes-btn bg-neutral-light hover:bg-neutral text-neutral-darker text-sm py-1.5 px-3 rounded-lg transition">${dictation.notes ? '修改备注' : '添加备注'}</button>
+                        <button class="delete-btn bg-danger hover:bg-danger-dark text-white text-sm py-1.5 px-3 rounded-lg transition">删除</button>
                     </div>
                 `;
                 
@@ -559,12 +557,12 @@ function loadHistory() {
         };
         
         getAllRequest.onerror = function() {
-            historyList.innerHTML = '<p class="text-red-500">加载历史记录失败</p>';
+            historyList.innerHTML = '<p class="text-danger py-4 text-center">加载历史记录失败</p>';
         };
     };
     
     request.onerror = function() {
-        historyList.innerHTML = '<p class="text-red-500">数据库打开失败</p>';
+        historyList.innerHTML = '<p class="text-danger py-4 text-center">数据库打开失败</p>';
     };
 }
 
@@ -727,17 +725,17 @@ function updateBreadcrumb(path) {
         
         if (index === path.length - 1) {
             // 当前位置，高亮显示
-            span.className = 'text-blue-600 font-medium';
+            span.className = 'text-primary font-medium';
             span.textContent = item;
         } else {
             // 可点击的路径
-            span.className = 'text-gray-600 cursor-pointer hover:text-blue-500';
+            span.className = 'text-neutral-dark cursor-pointer hover:text-primary-dark transition';
             span.textContent = item;
             span.onclick = () => navigateToBreadcrumb(index);
             
             // 添加箭头分隔符（除了最后一个元素）
             const arrow = document.createElement('span');
-            arrow.className = 'mx-2 text-gray-400';
+            arrow.className = 'mx-2 text-neutral';
             arrow.innerHTML = '<svg class="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z"/></svg>';
             
             breadcrumbPath.appendChild(span);

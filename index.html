@@ -5,13 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>语文听写助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#99f6e4',
+                            DEFAULT: '#14b8a6',
+                            dark: '#0f766e',
+                        },
+                        success: {
+                            light: '#a7f3d0',
+                            DEFAULT: '#10b981',
+                            dark: '#047857',
+                        },
+                        danger: {
+                            light: '#fecdd3',
+                            DEFAULT: '#f43f5e',
+                            dark: '#be123c',
+                        },
+                        neutral: {
+                            lightest: '#f9fafb',
+                            lighter: '#f3f4f6',
+                            light: '#e5e7eb',
+                            DEFAULT: '#9ca3af',
+                            dark: '#4b5563',
+                            darker: '#1f2937',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         .card {
             perspective: 1000px;
-            transition: transform 0.5s;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .card-inner {
-            transition: transform 0.5s;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             transform-style: preserve-3d;
         }
         .card-front, .card-back {
@@ -28,117 +61,129 @@
         /* 按钮点击时的视觉反馈样式 */
         .button-active {
             transform: scale(0.95);
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
             opacity: 0.9;
         }
         /* 所有按钮的统一过渡效果 */
         button {
-            transition: all 0.1s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9ca3af;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">语文听写助手</h1>
+<body class="bg-neutral-lighter min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-primary mb-8">语文听写助手</h1>
         
         <!-- 面包屑导航 -->
-        <div id="breadcrumb" class="bg-white rounded-lg shadow-md p-3 mb-4 flex items-center text-sm">
-            <span class="text-gray-600 flex items-center" id="breadcrumb-path">
+        <div id="breadcrumb" class="bg-white rounded-lg shadow-sm p-3 mb-6 flex items-center text-sm">
+            <span class="text-neutral-dark flex items-center" id="breadcrumb-path">
                 <!-- 面包屑路径将在这里动态生成 -->
-                <span class="text-blue-600 font-medium">主页</span>
+                <span class="text-primary font-medium">主页</span>
             </span>
         </div>
         
         <!-- 主页面 - 输入单词 -->
-        <div id="input-page" class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">输入待听写单词</h2>
-            <div class="mb-4">
-                <label for="words-input" class="block text-gray-700 mb-2">单词列表（以逗号、中文逗号或顿号分隔）：</label>
-                <textarea id="words-input" class="w-full border border-gray-300 rounded-md p-2 h-32" placeholder="例如：苹果(píng guǒ)，香蕉(xiāng jiāo)、橙子(chéng zi)"></textarea>
+        <div id="input-page" class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-neutral-darker">输入待听写单词</h2>
+            <div class="mb-6">
+                <label for="words-input" class="block text-neutral-dark mb-2">单词列表（以逗号、中文逗号或顿号分隔）：</label>
+                <textarea id="words-input" class="w-full border border-neutral-light rounded-lg p-3 h-32 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition outline-none" placeholder="例如：苹果(píng guǒ)，香蕉(xiāng jiāo)、橙子(chéng zi)"></textarea>
             </div>
-            <div class="flex justify-between">
-                <button id="start-dictation" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">开始听写</button>
-                <button id="load-history" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition">加载历史记录</button>
+            <div class="flex justify-between space-x-4">
+                <button id="start-dictation" class="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-lg transition">开始听写</button>
+                <button id="load-history" class="bg-white border border-primary text-primary hover:bg-primary-light hover:text-primary-dark font-medium py-2 px-6 rounded-lg transition">历史记录</button>
             </div>
         </div>
         
         <!-- 历史记录页面 -->
-        <div id="history-page" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
-            <h2 class="text-xl font-semibold mb-4">历史记录</h2>
-            <div id="history-list" class="mb-4 max-h-96 overflow-y-auto">
+        <div id="history-page" class="bg-white rounded-lg shadow-sm p-6 mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4 text-neutral-darker">历史记录</h2>
+            <div id="history-list" class="mb-6 max-h-96 overflow-y-auto rounded-lg bg-neutral-lightest p-2">
                 <!-- 历史记录将在这里动态生成 -->
-            </div>
-            <div class="flex justify-between">
-                <button id="back-to-input" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition">返回</button>
             </div>
         </div>
         
         <!-- 听写页面 - 单词卡片 -->
         <div id="dictation-page" class="hidden">
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-4">听写进行中</h2>
-                <div class="flex justify-between mb-2">
-                    <span id="progress" class="text-gray-600">1/10</span>
-                    <span id="unknown-count" class="text-red-500">不会：0</span>
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4 text-neutral-darker">听写进行中</h2>
+                <div class="flex justify-between mb-4 bg-neutral-lightest p-3 rounded-lg">
+                    <span id="progress" class="text-neutral-dark font-medium">1/10</span>
+                    <span id="unknown-count" class="text-danger font-medium">不会：0</span>
                 </div>
                 
-                <div id="word-card" class="card bg-white border-2 border-blue-200 rounded-xl p-6 h-64 flex flex-col items-center justify-center mb-6 mx-auto max-w-md">
+                <div id="word-card" class="card bg-white border border-primary-light rounded-xl p-8 h-64 flex flex-col items-center justify-center mb-8 mx-auto max-w-md shadow-sm hover:shadow transition">
                     <div class="card-inner w-full h-full">
                         <div class="card-front flex flex-col items-center justify-center w-full h-full">
-                            <p id="word-pinyin" class="text-3xl font-bold text-center text-blue-600 mb-4">pín yīn</p>
+                            <p id="word-pinyin" class="text-4xl font-bold text-center text-primary mb-2">pín yīn</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="flex justify-between">
-                    <button id="unknown-btn" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition">不会</button>
-                    <button id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">下一个</button>
+                <div class="flex justify-between space-x-4">
+                    <button id="unknown-btn" class="bg-danger hover:bg-danger-dark text-white font-medium py-2 px-6 rounded-lg transition w-full md:w-auto">不会</button>
+                    <button id="next-btn" class="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-lg transition w-full md:w-auto">下一个</button>
                 </div>
             </div>
         </div>
         
         <!-- 听写确认页面 -->
         <div id="confirmation-page" class="hidden">
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-4">听写确认</h2>
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-6 text-neutral-darker">听写确认</h2>
                 
-                <div class="mb-6">
-                    <h3 class="text-lg font-medium mb-2">所有单词</h3>
-                    <div id="all-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div class="mb-8 bg-neutral-lightest p-4 rounded-lg">
+                    <h3 class="text-lg font-medium mb-3 text-neutral-darker">所有单词</h3>
+                    <div id="all-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         <!-- 所有单词将在这里动态生成 -->
                     </div>
                 </div>
                 
-                <div class="mb-6">
-                    <h3 class="text-lg font-medium mb-2">不会的单词</h3>
-                    <div id="unknown-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div class="mb-8 bg-neutral-lightest p-4 rounded-lg">
+                    <h3 class="text-lg font-medium mb-3 text-neutral-darker">不会的单词</h3>
+                    <div id="unknown-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         <!-- 不会的单词将在这里动态生成 -->
                     </div>
                 </div>
                 
-                <div class="flex justify-between">
-                    <button id="next-round-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">下一轮</button>
-                    <button id="start-dictation-btn" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition hidden">进入听写</button>
-                    <button id="finish-btn" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition hidden">结束</button>
+                <div class="flex justify-between space-x-4">
+                    <button id="next-round-btn" class="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-lg transition">下一轮</button>
+                    <button id="start-dictation-btn" class="bg-success hover:bg-success-dark text-white font-medium py-2 px-6 rounded-lg transition hidden">进入听写</button>
+                    <button id="finish-btn" class="bg-white border border-success text-success hover:bg-success-light hover:text-success-dark font-medium py-2 px-6 rounded-lg transition hidden">结束</button>
                 </div>
             </div>
         </div>
         
         <!-- 结果页面 -->
         <div id="result-page" class="hidden">
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-4">听写结果</h2>
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-6 text-neutral-darker">听写结果</h2>
                 
-                <div class="mb-6">
-                    <h3 class="text-lg font-medium mb-2">单词遗忘度统计</h3>
-                    <div id="result-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div class="mb-8 bg-neutral-lightest p-4 rounded-lg">
+                    <h3 class="text-lg font-medium mb-3 text-neutral-darker">单词遗忘度统计</h3>
+                    <div id="result-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         <!-- 结果将在这里动态生成 -->
                     </div>
                 </div>
                 
-                <div class="flex justify-between">
-                    <button id="save-result-btn" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition">保存结果</button>
-                    <button id="new-dictation-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">新的听写</button>
+                <div class="flex justify-between space-x-4">
+                    <button id="save-result-btn" class="bg-success hover:bg-success-dark text-white font-medium py-2 px-6 rounded-lg transition">保存结果</button>
+                    <button id="new-dictation-btn" class="bg-white border border-primary text-primary hover:bg-primary-light hover:text-primary-dark font-medium py-2 px-6 rounded-lg transition">新的听写</button>
                 </div>
             </div>
         </div>
