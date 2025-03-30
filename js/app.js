@@ -354,7 +354,7 @@ function updateUnknownWordsList() {
             bgColorClass = 'bg-danger-light bg-opacity-50';
         }
         
-        wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} text-white`;
+        wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} text-neutral-darker`;
         wordItem.textContent = `${word.word} (${word.forgottenCount})`;
         unknownWordsList.appendChild(wordItem);
     });
