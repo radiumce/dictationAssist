@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语文听写助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card {
+            perspective: 1000px;
+            transition: transform 0.5s;
+        }
+        .card-inner {
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-8">语文听写助手</h1>
+        
+        <!-- 主页面 - 输入单词 -->
+        <div id="input-page" class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">输入待听写单词</h2>
+            <div class="mb-4">
+                <label for="words-input" class="block text-gray-700 mb-2">单词列表（以逗号、中文逗号或顿号分隔）：</label>
+                <textarea id="words-input" class="w-full border border-gray-300 rounded-md p-2 h-32" placeholder="例如：苹果(píng guǒ)，香蕉(xiāng jiāo)、橙子(chéng zi)"></textarea>
+            </div>
+            <div class="flex justify-between">
+                <button id="start-dictation" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">开始听写</button>
+                <button id="load-history" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition">加载历史记录</button>
+            </div>
+        </div>
+        
+        <!-- 历史记录页面 -->
+        <div id="history-page" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">历史记录</h2>
+            <div id="history-list" class="mb-4 max-h-96 overflow-y-auto">
+                <!-- 历史记录将在这里动态生成 -->
+            </div>
+            <div class="flex justify-between">
+                <button id="back-to-input" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition">返回</button>
+            </div>
+        </div>
+        
+        <!-- 听写页面 - 单词卡片 -->
+        <div id="dictation-page" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">听写进行中</h2>
+                <div class="flex justify-between mb-2">
+                    <span id="progress" class="text-gray-600">1/10</span>
+                    <span id="unknown-count" class="text-red-500">不会：0</span>
+                </div>
+                
+                <div id="word-card" class="card bg-white border-2 border-blue-200 rounded-xl p-6 h-64 flex flex-col items-center justify-center mb-6 mx-auto max-w-md">
+                    <div class="card-inner w-full h-full">
+                        <div class="card-front flex flex-col items-center justify-center w-full h-full">
+                            <p id="word-pinyin" class="text-3xl font-bold text-center text-blue-600 mb-4">pín yīn</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button id="unknown-btn" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md transition">不会</button>
+                    <button id="next-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">下一个</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 听写确认页面 -->
+        <div id="confirmation-page" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">听写确认</h2>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-2">所有单词</h3>
+                    <div id="all-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <!-- 所有单词将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-2">不会的单词</h3>
+                    <div id="unknown-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <!-- 不会的单词将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button id="next-round-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">下一轮</button>
+                    <button id="finish-btn" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition hidden">结束</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 结果页面 -->
+        <div id="result-page" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">听写结果</h2>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-2">单词遗忘度统计</h3>
+                    <div id="result-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        <!-- 结果将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button id="save-result-btn" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition">保存结果</button>
+                    <button id="new-dictation-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition">新的听写</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
