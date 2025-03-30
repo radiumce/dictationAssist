@@ -27,11 +27,15 @@ const nextBtn = document.getElementById('next-btn');
 const allWordsList = document.getElementById('all-words-list');
 const unknownWordsList = document.getElementById('unknown-words-list');
 const nextRoundBtn = document.getElementById('next-round-btn');
+const startDictationFromHistoryBtn = document.getElementById('start-dictation-btn');
 const finishBtn = document.getElementById('finish-btn');
 
 const resultWordsList = document.getElementById('result-words-list');
 const saveResultBtn = document.getElementById('save-result-btn');
 const newDictationBtn = document.getElementById('new-dictation-btn');
+
+// 标记是否从历史记录加载
+let isFromHistory = false;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -42,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     unknownBtn.addEventListener('click', markAsUnknown);
     nextBtn.addEventListener('click', nextWord);
     nextRoundBtn.addEventListener('click', startNextRound);
+    startDictationFromHistoryBtn.addEventListener('click', startDictationFromHistory);
     finishBtn.addEventListener('click', showResults);
     saveResultBtn.addEventListener('click', saveResults);
     newDictationBtn.addEventListener('click', backToInput);
@@ -127,43 +132,119 @@ function nextWord() {
 function showConfirmationPage() {
     showPage(confirmationPage);
     
-    // 更新所有单词列表 - 显示初始输入的所有单词
+    // 更新所有单词列表 - 显示初始输入的所有单词，按遗忘度分组
     allWordsList.innerHTML = '';
-    initialWords.forEach(word => {
+    
+    // 获取所有单词的最新状态
+    const wordsWithCurrentState = initialWords.map(initialWord => {
         // 查找当前单词在allWords中的状态
-        const currentWordState = allWords.find(w => w.word === word.word) || word;
-        
-        const wordItem = document.createElement('div');
-        wordItem.className = `p-2 border rounded ${currentWordState.isUnknown ? 'bg-red-100' : 'bg-gray-100'} cursor-pointer`;
-        wordItem.textContent = `${word.word} (${currentWordState.forgottenCount})`;
-        wordItem.addEventListener('click', () => {
-            if (!currentWordState.isUnknown) {
-                currentWordState.isUnknown = true;
-                currentWordState.forgottenCount += 1;
-                wordItem.classList.remove('bg-gray-100');
-                wordItem.classList.add('bg-red-100');
-                
-                // 如果不在不会列表中，添加到不会列表
-                if (!unknownWords.some(w => w.word === currentWordState.word)) {
-                    unknownWords.push(currentWordState);
-                    updateUnknownWordsList();
-                }
-            }
-        });
-        allWordsList.appendChild(wordItem);
+        const currentWordState = allWords.find(w => w.word === initialWord.word) || initialWord;
+        return currentWordState;
     });
+    
+    // 按遗忘度分组
+    const groupedWords = {};
+    wordsWithCurrentState.forEach(word => {
+        const forgottenCount = word.forgottenCount;
+        if (!groupedWords[forgottenCount]) {
+            groupedWords[forgottenCount] = [];
+        }
+        groupedWords[forgottenCount].push(word);
+    });
+    
+    // 按遗忘度从高到低排序并显示
+    Object.keys(groupedWords)
+        .map(Number)
+        .sort((a, b) => b - a)
+        .forEach(forgottenCount => {
+            // 创建分组标题
+            const groupTitle = document.createElement('div');
+            groupTitle.className = 'col-span-full font-semibold text-lg mt-2 mb-1';
+            groupTitle.textContent = forgottenCount === 0 ? 
+                '已掌握的单词 (遗忘度: 0)' : 
+                `遗忘度 ${forgottenCount} 的单词`;
+            allWordsList.appendChild(groupTitle);
+            
+            // 添加该组的单词
+            groupedWords[forgottenCount].forEach(word => {
+                const wordItem = document.createElement('div');
+                wordItem.className = `p-2 border rounded ${word.isUnknown ? 'bg-red-100' : 'bg-gray-100'} cursor-pointer`;
+                wordItem.textContent = `${word.word} (${word.forgottenCount})`;
+                wordItem.addEventListener('click', () => {
+                    // 无论是否从历史记录进入，点击都应该添加到不会列表
+                    if (!word.isUnknown) {
+                        word.isUnknown = true;
+                        
+                        // 只有在正常听写流程中才增加遗忘度，从历史记录选择时不增加
+                        if (!isFromHistory) {
+                            word.forgottenCount += 1;
+                        }
+                        
+                        wordItem.classList.remove('bg-gray-100');
+                        wordItem.classList.add('bg-red-100');
+                        
+                        // 如果不在不会列表中，添加到不会列表
+                        if (!unknownWords.some(w => w.word === word.word)) {
+                            unknownWords.push(word);
+                            updateUnknownWordsList();
+                        }
+                        
+                        // 重新显示确认页面以更新分组
+                        showConfirmationPage();
+                    }
+                });
+                allWordsList.appendChild(wordItem);
+            });
+        });
     
     // 更新不会的单词列表
     updateUnknownWordsList();
     
-    // 如果没有不会的单词，显示结束按钮
-    if (unknownWords.length === 0) {
+    // 根据来源和不会的单词数量显示不同的按钮
+    if (isFromHistory) {
+        // 从历史记录加载，显示"进入听写"按钮
         nextRoundBtn.classList.add('hidden');
-        finishBtn.classList.remove('hidden');
-    } else {
-        nextRoundBtn.classList.remove('hidden');
         finishBtn.classList.add('hidden');
+        startDictationFromHistoryBtn.classList.remove('hidden');
+        
+        // 如果不会的单词列表为空，禁用"进入听写"按钮
+        if (unknownWords.length === 0) {
+            startDictationFromHistoryBtn.disabled = true;
+            startDictationFromHistoryBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            startDictationFromHistoryBtn.disabled = false;
+            startDictationFromHistoryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    } else {
+        // 正常听写流程
+        startDictationFromHistoryBtn.classList.add('hidden');
+        
+        if (unknownWords.length === 0) {
+            nextRoundBtn.classList.add('hidden');
+            finishBtn.classList.remove('hidden');
+        } else {
+            nextRoundBtn.classList.remove('hidden');
+            finishBtn.classList.add('hidden');
+        }
     }
+}
+
+// 从历史记录开始听写
+function startDictationFromHistory() {
+    if (unknownWords.length === 0) {
+        alert('请先选择需要听写的单词！');
+        return;
+    }
+    
+    // 只听写不会的单词
+    allWords = [...unknownWords];
+    currentWordIndex = 0;
+    currentRound = 1;
+    isFromHistory = false; // 重置标记，进入正常听写流程
+    
+    // 显示听写页面
+    showPage(dictationPage);
+    updateDictationUI();
 }
 
 // 更新不会的单词列表
@@ -199,7 +280,7 @@ function startNextRound() {
 function showResults() {
     showPage(resultPage);
     
-    // 更新结果列表 - 使用初始单词列表，但显示最新的遗忘度
+    // 更新结果列表 - 使用初始单词列表，但显示最新的遗忘度，并按遗忘度分组
     resultWordsList.innerHTML = '';
     
     // 创建一个包含所有初始单词最新状态的数组
@@ -210,15 +291,37 @@ function showResults() {
         return currentState || initialWord;
     });
     
-    // 按遗忘度排序
-    resultWords.sort((a, b) => b.forgottenCount - a.forgottenCount);
-    
+    // 按遗忘度分组
+    const groupedWords = {};
     resultWords.forEach(word => {
-        const wordItem = document.createElement('div');
-        wordItem.className = `p-2 border rounded ${word.forgottenCount > 0 ? 'bg-red-100' : 'bg-green-100'}`;
-        wordItem.textContent = `${word.word} (${word.forgottenCount})`;
-        resultWordsList.appendChild(wordItem);
+        const forgottenCount = word.forgottenCount;
+        if (!groupedWords[forgottenCount]) {
+            groupedWords[forgottenCount] = [];
+        }
+        groupedWords[forgottenCount].push(word);
     });
+    
+    // 按遗忘度从高到低排序并显示
+    Object.keys(groupedWords)
+        .map(Number)
+        .sort((a, b) => b - a)
+        .forEach(forgottenCount => {
+            // 创建分组标题
+            const groupTitle = document.createElement('div');
+            groupTitle.className = 'col-span-full font-semibold text-lg mt-2 mb-1';
+            groupTitle.textContent = forgottenCount === 0 ? 
+                '已掌握的单词 (遗忘度: 0)' : 
+                `遗忘度 ${forgottenCount} 的单词`;
+            resultWordsList.appendChild(groupTitle);
+            
+            // 添加该组的单词
+            groupedWords[forgottenCount].forEach(word => {
+                const wordItem = document.createElement('div');
+                wordItem.className = `p-2 border rounded ${word.forgottenCount > 0 ? 'bg-red-100' : 'bg-green-100'}`;
+                wordItem.textContent = `${word.word} (${word.forgottenCount})`;
+                resultWordsList.appendChild(wordItem);
+            });
+        });
 }
 
 // 保存结果到 IndexedDB
@@ -334,11 +437,18 @@ function loadHistory() {
 
 // 加载历史记录项
 function loadHistoryItem(dictation) {
-    allWords = [...dictation.words];
-    initialWords = [...dictation.words]; // Set initialWords to the loaded history words
-    unknownWords = [];
+    // 重置所有单词的 isUnknown 状态，确保可以重新选择
+    const resetWords = dictation.words.map(word => ({
+        ...word,
+        isUnknown: false  // 重置状态，确保可以重新选择
+    }));
+    
+    allWords = [...resetWords];
+    initialWords = [...resetWords];
+    unknownWords = []; // 清空不会列表，等待用户重新选择
     currentWordIndex = 0;
     currentRound = 1;
+    isFromHistory = true;
     
     // 显示确认页面
     showConfirmationPage();
@@ -348,6 +458,7 @@ function loadHistoryItem(dictation) {
 function backToInput() {
     showPage(inputPage);
     wordsInput.value = '';
+    isFromHistory = false;
 }
 
 // 显示指定页面，隐藏其他页面
