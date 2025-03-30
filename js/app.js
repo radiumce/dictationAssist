@@ -180,7 +180,23 @@ function showConfirmationPage() {
             // 添加该组的单词
             groupedWords[forgottenCount].forEach(word => {
                 const wordItem = document.createElement('div');
-                wordItem.className = `p-2 border rounded ${word.isUnknown ? 'bg-red-100' : 'bg-gray-100'} cursor-pointer`;
+                
+                // 决定颜色: 遗忘度越高颜色越深
+                let bgColorClass = 'bg-gray-100';
+                if (word.isUnknown) {
+                    bgColorClass = 'bg-red-100';
+                } else if (forgottenCount > 0) {
+                    // 根据遗忘度设置不同深度的颜色
+                    if (forgottenCount >= 3) {
+                        bgColorClass = 'bg-red-50';
+                    } else if (forgottenCount == 2) {
+                        bgColorClass = 'bg-yellow-50';
+                    } else if (forgottenCount == 1) {
+                        bgColorClass = 'bg-green-50';
+                    }
+                }
+                
+                wordItem.className = `p-2 border rounded ${bgColorClass} cursor-pointer`;
                 wordItem.textContent = `${word.word} (${word.forgottenCount})`;
                 wordItem.addEventListener('click', () => {
                     // 无论是否从历史记录进入，点击都应该添加到不会列表
@@ -192,7 +208,7 @@ function showConfirmationPage() {
                             word.forgottenCount += 1;
                         }
                         
-                        wordItem.classList.remove('bg-gray-100');
+                        wordItem.classList.remove('bg-gray-100', 'bg-red-50', 'bg-yellow-50', 'bg-green-50');
                         wordItem.classList.add('bg-red-100');
                         
                         // 如果不在不会列表中，添加到不会列表
@@ -292,7 +308,18 @@ function updateUnknownWordsList() {
     unknownWordsList.innerHTML = '';
     unknownWords.forEach(word => {
         const wordItem = document.createElement('div');
-        wordItem.className = 'p-2 border rounded bg-red-100';
+        
+        // 根据遗忘度设置不同深度的颜色
+        let bgColorClass = 'bg-red-100';
+        if (word.forgottenCount >= 3) {
+            bgColorClass = 'bg-red-200';
+        } else if (word.forgottenCount == 2) {
+            bgColorClass = 'bg-red-100';
+        } else if (word.forgottenCount == 1) {
+            bgColorClass = 'bg-red-50';
+        }
+        
+        wordItem.className = `p-2 border rounded ${bgColorClass}`;
         wordItem.textContent = `${word.word} (${word.forgottenCount})`;
         unknownWordsList.appendChild(wordItem);
     });
@@ -339,7 +366,18 @@ function showResults() {
             // 添加该组的单词
             groupedWords[forgottenCount].forEach(word => {
                 const wordItem = document.createElement('div');
-                wordItem.className = `p-2 border rounded ${word.forgottenCount > 0 ? 'bg-red-100' : 'bg-green-100'}`;
+                
+                // 决定颜色: 遗忘度越高颜色越深
+                let bgColorClass = 'bg-green-100';
+                if (forgottenCount >= 3) {
+                    bgColorClass = 'bg-red-200';
+                } else if (forgottenCount == 2) {
+                    bgColorClass = 'bg-red-100';
+                } else if (forgottenCount == 1) {
+                    bgColorClass = 'bg-yellow-100';
+                }
+                
+                wordItem.className = `p-2 border rounded ${bgColorClass}`;
                 wordItem.textContent = `${word.word} (${word.forgottenCount})`;
                 resultWordsList.appendChild(wordItem);
             });
