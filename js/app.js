@@ -119,11 +119,23 @@ function markAsUnknown() {
         unknownWords.push(currentWord);
     }
     
-    nextWord();
+    // 进入下一个单词
+    currentWordIndex++;
+    updateDictationUI();
 }
 
 // 下一个单词
 function nextWord() {
+    // 如果点击"下一个"，则当前单词被标记为"会了"
+    const currentWord = allWords[currentWordIndex];
+    currentWord.isUnknown = false;
+    
+    // 从不会列表中移除
+    const index = unknownWords.findIndex(w => w.word === currentWord.word);
+    if (index !== -1) {
+        unknownWords.splice(index, 1);
+    }
+    
     currentWordIndex++;
     updateDictationUI();
 }
@@ -237,10 +249,38 @@ function startDictationFromHistory() {
     }
     
     // 只听写不会的单词
-    allWords = [...unknownWords];
+    allWords = unknownWords.map(word => ({
+        ...word,
+        isUnknown: true  // 确保这些单词的状态是"不会"
+    }));
+    
+    // 保持一份初始的不会单词列表，这样用户点击"下一个"时能从列表中移除
+    unknownWords = [...allWords];
     currentWordIndex = 0;
     currentRound = 1;
     isFromHistory = false; // 重置标记，进入正常听写流程
+    
+    // 显示听写页面
+    showPage(dictationPage);
+    updateDictationUI();
+}
+
+// 开始下一轮
+function startNextRound() {
+    if (unknownWords.length === 0) {
+        showResults();
+        return;
+    }
+    
+    // 只听写不会的单词
+    allWords = unknownWords.map(word => ({
+        ...word,
+        isUnknown: true  // 确保这些单词的状态是"不会"
+    }));
+    
+    unknownWords = [...allWords]; // 复制一份，确保初始状态所有单词都在"不会"列表中
+    currentWordIndex = 0;
+    currentRound++;
     
     // 显示听写页面
     showPage(dictationPage);
@@ -256,24 +296,6 @@ function updateUnknownWordsList() {
         wordItem.textContent = `${word.word} (${word.forgottenCount})`;
         unknownWordsList.appendChild(wordItem);
     });
-}
-
-// 开始下一轮
-function startNextRound() {
-    if (unknownWords.length === 0) {
-        showResults();
-        return;
-    }
-    
-    // 只听写不会的单词
-    allWords = [...unknownWords];
-    unknownWords = [];
-    currentWordIndex = 0;
-    currentRound++;
-    
-    // 显示听写页面
-    showPage(dictationPage);
-    updateDictationUI();
 }
 
 // 显示结果
