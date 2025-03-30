@@ -39,7 +39,15 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-center text-blue-600 mb-8">语文听写助手</h1>
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">语文听写助手</h1>
+        
+        <!-- 面包屑导航 -->
+        <div id="breadcrumb" class="bg-white rounded-lg shadow-md p-3 mb-4 flex items-center text-sm">
+            <span class="text-gray-600 flex items-center" id="breadcrumb-path">
+                <!-- 面包屑路径将在这里动态生成 -->
+                <span class="text-blue-600 font-medium">主页</span>
+            </span>
+        </div>
         
         <!-- 主页面 - 输入单词 -->
         <div id="input-page" class="bg-white rounded-lg shadow-md p-6 mb-6">

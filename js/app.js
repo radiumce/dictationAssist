@@ -5,6 +5,8 @@ let unknownWords = []; // 不会的单词
 let currentWordIndex = 0; // 当前单词索引
 let currentRound = 1; // 当前轮次
 let isButtonDisabled = false; // 按钮是否被禁用
+let isFromHistory = false; // 是否从历史记录进入
+let navigationPath = ['主页']; // 导航路径
 
 // DOM 元素
 const inputPage = document.getElementById('input-page');
@@ -18,6 +20,7 @@ const startDictationBtn = document.getElementById('start-dictation');
 const loadHistoryBtn = document.getElementById('load-history');
 const backToInputBtn = document.getElementById('back-to-input');
 const historyList = document.getElementById('history-list');
+const breadcrumbPath = document.getElementById('breadcrumb-path');
 
 const progressText = document.getElementById('progress');
 const unknownCountText = document.getElementById('unknown-count');
@@ -34,9 +37,6 @@ const finishBtn = document.getElementById('finish-btn');
 const resultWordsList = document.getElementById('result-words-list');
 const saveResultBtn = document.getElementById('save-result-btn');
 const newDictationBtn = document.getElementById('new-dictation-btn');
-
-// 标记是否从历史记录加载
-let isFromHistory = false;
 
 // 防止按钮短时间内被连续点击的函数
 function debounceButton(button, callback, delay = 500) {
@@ -71,10 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
     unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
     nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
     nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));
-    startDictationFromHistoryBtn.addEventListener('click', () => debounceButton(startDictationFromHistoryBtn, startDictationFromHistory));
     finishBtn.addEventListener('click', () => debounceButton(finishBtn, showResults));
+    startDictationFromHistoryBtn.addEventListener('click', () => debounceButton(startDictationFromHistoryBtn, startDictationFromHistory));
     saveResultBtn.addEventListener('click', () => debounceButton(saveResultBtn, saveResults));
     newDictationBtn.addEventListener('click', () => debounceButton(newDictationBtn, backToInput));
+    
+    // 初始加载历史记录
+    initDB();
 });
 
 // 汉字转拼音函数（简化版，实际应用中可能需要更复杂的转换库）
@@ -116,6 +119,7 @@ function startDictation() {
 
     // 显示听写页面
     showPage(dictationPage);
+    updateBreadcrumb(['主页', '听写']);
     updateDictationUI();
 }
 
@@ -280,6 +284,13 @@ function showConfirmationPage() {
             finishBtn.classList.add('hidden');
         }
     }
+    
+    // 更新面包屑导航
+    if (isFromHistory) {
+        updateBreadcrumb(['主页', '历史记录', '听写确认']);
+    } else {
+        updateBreadcrumb(['主页', '听写', '听写确认']);
+    }
 }
 
 // 从历史记录开始听写
@@ -303,6 +314,7 @@ function startDictationFromHistory() {
     
     // 显示听写页面
     showPage(dictationPage);
+    updateBreadcrumb(['主页', '历史记录', '听写确认', '听写']);
     updateDictationUI();
 }
 
@@ -407,6 +419,13 @@ function showResults() {
                 resultWordsList.appendChild(wordItem);
             });
         });
+    
+    // 更新面包屑导航
+    if (isFromHistory) {
+        updateBreadcrumb(['主页', '历史记录', '听写确认', '听写', '结果']);
+    } else {
+        updateBreadcrumb(['主页', '听写', '听写确认', '结果']);
+    }
 }
 
 // 保存结果到 IndexedDB
@@ -424,7 +443,8 @@ function saveResults() {
     const dictationData = {
         id: timestamp,
         date: timestamp,
-        words: finalWords
+        words: finalWords,
+        notes: '' // 添加空备注字段
     };
     
     // 打开或创建 IndexedDB 数据库
@@ -463,6 +483,7 @@ function saveResults() {
 // 加载历史记录
 function loadHistory() {
     showPage(historyPage);
+    updateBreadcrumb(['主页', '历史记录']);
     historyList.innerHTML = '';
     
     // 打开 IndexedDB 数据库
@@ -494,16 +515,43 @@ function loadHistory() {
                 const unknownCount = dictation.words.filter(w => w.forgottenCount > 0).length;
                 
                 const historyItem = document.createElement('div');
-                historyItem.className = 'p-4 border-b cursor-pointer hover:bg-gray-50';
+                historyItem.className = 'p-4 border-b hover:bg-gray-50';
+                
+                // 添加备注和主要信息
                 historyItem.innerHTML = `
-                    <div class="flex justify-between">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="font-medium">${date}</span>
                         <span class="text-gray-500">共 ${wordCount} 个单词，不会 ${unknownCount} 个</span>
                     </div>
+                    <div class="notes-container mb-2 ${dictation.notes ? '' : 'hidden'}">
+                        <p class="text-sm text-gray-600 italic">${dictation.notes || ''}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="view-btn bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-2 rounded-md transition">查看</button>
+                        <button class="copy-btn bg-green-500 hover:bg-green-600 text-white text-sm py-1 px-2 rounded-md transition">复制</button>
+                        <button class="notes-btn bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 px-2 rounded-md transition">${dictation.notes ? '修改备注' : '添加备注'}</button>
+                        <button class="delete-btn bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-2 rounded-md transition">删除</button>
+                    </div>
                 `;
                 
-                historyItem.addEventListener('click', () => {
+                // 查看按钮事件
+                historyItem.querySelector('.view-btn').addEventListener('click', () => {
                     loadHistoryItem(dictation);
+                });
+                
+                // 复制到剪贴板按钮事件
+                historyItem.querySelector('.copy-btn').addEventListener('click', () => {
+                    copyToClipboard(dictation);
+                });
+                
+                // 添加/修改备注按钮事件
+                historyItem.querySelector('.notes-btn').addEventListener('click', () => {
+                    addEditNotes(dictation);
+                });
+                
+                // 删除按钮事件
+                historyItem.querySelector('.delete-btn').addEventListener('click', () => {
+                    deleteHistoryItem(dictation.id);
                 });
                 
                 historyList.appendChild(historyItem);
@@ -517,6 +565,110 @@ function loadHistory() {
     
     request.onerror = function() {
         historyList.innerHTML = '<p class="text-red-500">数据库打开失败</p>';
+    };
+}
+
+// 复制历史记录到剪贴板
+function copyToClipboard(dictation) {
+    // 创建一个JSON对象
+    const clipboardData = {
+        date: dictation.date,
+        formattedDate: new Date(dictation.date).toLocaleString(),
+        notes: dictation.notes || '',
+        words: []
+    };
+    
+    // 处理单词数据
+    dictation.words.forEach(word => {
+        // 提取汉字和拼音
+        const match = word.word.match(/^(.*?)\((.*?)\)$/);
+        let hanzi = word.word;
+        let pinyin = '';
+        
+        if (match && match[1] && match[2]) {
+            hanzi = match[1];
+            pinyin = match[2];
+        }
+        
+        clipboardData.words.push({
+            word: hanzi,
+            pinyin: pinyin,
+            forgottenCount: word.forgottenCount
+        });
+    });
+    
+    // 转换为JSON字符串
+    const jsonString = JSON.stringify(clipboardData, null, 2); // 使用2个空格缩进，美化输出
+    
+    // 使用Clipboard API复制到剪贴板
+    navigator.clipboard.writeText(jsonString)
+        .then(() => {
+            alert('已复制到剪贴板（JSON格式）！');
+        })
+        .catch(err => {
+            alert('复制失败，请重试！');
+            console.error('复制失败: ', err);
+        });
+}
+
+// 添加或修改备注
+function addEditNotes(dictation) {
+    const currentNotes = dictation.notes || '';
+    const newNotes = prompt('请输入备注信息：', currentNotes);
+    
+    // 如果用户取消了，不做任何操作
+    if (newNotes === null) return;
+    
+    // 更新数据库中的备注
+    const request = indexedDB.open('DictationAssistant', 1);
+    
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction(['dictations'], 'readwrite');
+        const store = transaction.objectStore('dictations');
+        
+        // 先获取记录
+        const getRequest = store.get(dictation.id);
+        
+        getRequest.onsuccess = function() {
+            const record = getRequest.result;
+            if (record) {
+                // 更新备注
+                record.notes = newNotes;
+                // 保存回数据库
+                store.put(record);
+                // 重新加载历史记录
+                loadHistory();
+            }
+        };
+    };
+}
+
+// 删除历史记录项
+function deleteHistoryItem(id) {
+    if (!confirm('确定要删除这条历史记录吗？此操作不可撤销。')) {
+        return;
+    }
+    
+    const request = indexedDB.open('DictationAssistant', 1);
+    
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction(['dictations'], 'readwrite');
+        const store = transaction.objectStore('dictations');
+        
+        // 删除记录
+        const deleteRequest = store.delete(id);
+        
+        deleteRequest.onsuccess = function() {
+            alert('历史记录已删除！');
+            // 重新加载历史记录
+            loadHistory();
+        };
+        
+        deleteRequest.onerror = function() {
+            alert('删除失败，请重试！');
+        };
     };
 }
 
@@ -542,8 +694,16 @@ function loadHistoryItem(dictation) {
 // 返回输入页面
 function backToInput() {
     showPage(inputPage);
+    updateBreadcrumb(['主页']);
     wordsInput.value = '';
     isFromHistory = false;
+}
+
+// 返回历史记录页面
+function backToHistory() {
+    showPage(historyPage);
+    updateBreadcrumb(['主页', '历史记录']);
+    loadHistory(); // 刷新历史记录列表
 }
 
 // 显示指定页面，隐藏其他页面
@@ -555,4 +715,63 @@ function showPage(page) {
     resultPage.classList.add('hidden');
     
     page.classList.remove('hidden');
+}
+
+// 更新面包屑导航
+function updateBreadcrumb(path) {
+    navigationPath = path;
+    breadcrumbPath.innerHTML = '';
+    
+    path.forEach((item, index) => {
+        const span = document.createElement('span');
+        
+        if (index === path.length - 1) {
+            // 当前位置，高亮显示
+            span.className = 'text-blue-600 font-medium';
+            span.textContent = item;
+        } else {
+            // 可点击的路径
+            span.className = 'text-gray-600 cursor-pointer hover:text-blue-500';
+            span.textContent = item;
+            span.onclick = () => navigateToBreadcrumb(index);
+            
+            // 添加箭头分隔符（除了最后一个元素）
+            const arrow = document.createElement('span');
+            arrow.className = 'mx-2 text-gray-400';
+            arrow.innerHTML = '<svg class="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z"/></svg>';
+            
+            breadcrumbPath.appendChild(span);
+            breadcrumbPath.appendChild(arrow);
+            return;
+        }
+        
+        breadcrumbPath.appendChild(span);
+    });
+}
+
+// 面包屑导航点击处理
+function navigateToBreadcrumb(index) {
+    const target = navigationPath[index];
+    
+    switch (target) {
+        case '主页':
+            backToInput();
+            break;
+        case '历史记录':
+            backToHistory();
+            break;
+        case '听写':
+            // 只有在听写确认页面直接进入听写时才应该回到听写页面
+            if (navigationPath[index + 1] === '听写确认') {
+                showPage(dictationPage);
+                if (isFromHistory) {
+                    updateBreadcrumb(['主页', '历史记录', '听写']);
+                } else {
+                    updateBreadcrumb(['主页', '听写']);
+                }
+                updateDictationUI();
+            }
+            break;
+        // 其他情况不处理，因为可能是从不同路径进入的相同页面
+    }
 }
