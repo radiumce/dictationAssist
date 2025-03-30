@@ -4,6 +4,7 @@ let initialWords = []; // 初始输入的所有单词
 let unknownWords = []; // 不会的单词
 let currentWordIndex = 0; // 当前单词索引
 let currentRound = 1; // 当前轮次
+let isButtonDisabled = false; // 按钮是否被禁用
 
 // DOM 元素
 const inputPage = document.getElementById('input-page');
@@ -37,19 +38,43 @@ const newDictationBtn = document.getElementById('new-dictation-btn');
 // 标记是否从历史记录加载
 let isFromHistory = false;
 
+// 防止按钮短时间内被连续点击的函数
+function debounceButton(button, callback, delay = 500) {
+    if (isButtonDisabled) return;
+    
+    // 添加视觉反馈
+    button.classList.add('button-active');
+    
+    // 禁用所有按钮
+    isButtonDisabled = true;
+    
+    // 执行回调函数
+    callback();
+    
+    // 视觉反馈持续200毫秒
+    setTimeout(() => {
+        button.classList.remove('button-active');
+    }, 200);
+    
+    // 防呆间隔保持500毫秒
+    setTimeout(() => {
+        isButtonDisabled = false;
+    }, delay);
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
-    // 按钮事件监听
-    startDictationBtn.addEventListener('click', startDictation);
-    loadHistoryBtn.addEventListener('click', loadHistory);
-    backToInputBtn.addEventListener('click', backToInput);
-    unknownBtn.addEventListener('click', markAsUnknown);
-    nextBtn.addEventListener('click', nextWord);
-    nextRoundBtn.addEventListener('click', startNextRound);
-    startDictationFromHistoryBtn.addEventListener('click', startDictationFromHistory);
-    finishBtn.addEventListener('click', showResults);
-    saveResultBtn.addEventListener('click', saveResults);
-    newDictationBtn.addEventListener('click', backToInput);
+    // 按钮事件监听 - 使用 debounce 防止快速连续点击
+    startDictationBtn.addEventListener('click', () => debounceButton(startDictationBtn, startDictation));
+    loadHistoryBtn.addEventListener('click', () => debounceButton(loadHistoryBtn, loadHistory));
+    backToInputBtn.addEventListener('click', () => debounceButton(backToInputBtn, backToInput));
+    unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
+    nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
+    nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));
+    startDictationFromHistoryBtn.addEventListener('click', () => debounceButton(startDictationFromHistoryBtn, startDictationFromHistory));
+    finishBtn.addEventListener('click', () => debounceButton(finishBtn, showResults));
+    saveResultBtn.addEventListener('click', () => debounceButton(saveResultBtn, saveResults));
+    newDictationBtn.addEventListener('click', () => debounceButton(newDictationBtn, backToInput));
 });
 
 // 汉字转拼音函数（简化版，实际应用中可能需要更复杂的转换库）
