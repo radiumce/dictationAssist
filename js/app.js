@@ -20,6 +20,8 @@ const startDictationBtn = document.getElementById('start-dictation');
 const loadHistoryBtn = document.getElementById('load-history');
 const historyList = document.getElementById('history-list');
 const breadcrumbPath = document.getElementById('breadcrumb-path');
+const exportHistoryBtn = document.getElementById('export-history');
+const importHistoryInput = document.getElementById('import-history-input');
 
 const progressText = document.getElementById('progress');
 const unknownCountText = document.getElementById('unknown-count');
@@ -69,10 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
     unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
     nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
     nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));
-    finishBtn.addEventListener('click', () => debounceButton(finishBtn, showResults));
     startDictationFromHistoryBtn.addEventListener('click', () => debounceButton(startDictationFromHistoryBtn, startDictationFromHistory));
+    finishBtn.addEventListener('click', () => debounceButton(finishBtn, showResults));
     saveResultBtn.addEventListener('click', () => debounceButton(saveResultBtn, saveResults));
     newDictationBtn.addEventListener('click', () => debounceButton(newDictationBtn, backToInput));
+    
+    // 导出和导入历史记录事件监听
+    exportHistoryBtn.addEventListener('click', () => debounceButton(exportHistoryBtn, exportAllHistory));
+    importHistoryInput.addEventListener('change', (event) => {
+        if (event.target.files.length > 0) {
+            importHistory(event.target.files[0]);
+        }
+    });
     
     // 初始加载历史记录
     initDB();
@@ -772,4 +782,149 @@ function navigateToBreadcrumb(index) {
             break;
         // 其他情况不处理，因为可能是从不同路径进入的相同页面
     }
+}
+
+// 导出全部历史记录
+function exportAllHistory() {
+    // 打开 IndexedDB 数据库
+    const request = indexedDB.open('DictationAssistant', 1);
+    
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction(['dictations'], 'readonly');
+        const store = transaction.objectStore('dictations');
+        
+        // 获取所有记录
+        const getAllRequest = store.getAll();
+        
+        getAllRequest.onsuccess = function() {
+            const dictations = getAllRequest.result;
+            
+            if (dictations.length === 0) {
+                alert('暂无历史记录可导出');
+                return;
+            }
+            
+            // 创建用于导出的数据对象
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                dictations: dictations
+            };
+            
+            // 转换为JSON字符串
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // 创建Blob对象
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            
+            // 创建下载链接
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = `听写历史记录_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+            
+            // 模拟点击下载
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        };
+        
+        getAllRequest.onerror = function() {
+            alert('导出失败：无法获取历史记录');
+        };
+    };
+    
+    request.onerror = function() {
+        alert('导出失败：数据库打开错误');
+    };
+}
+
+// 导入历史记录
+function importHistory(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            // 解析JSON
+            const importedData = JSON.parse(e.target.result);
+            
+            // 验证导入的数据格式
+            if (!importedData.dictations || !Array.isArray(importedData.dictations)) {
+                throw new Error('导入文件格式错误');
+            }
+            
+            // 打开数据库
+            const request = indexedDB.open('DictationAssistant', 1);
+            
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction(['dictations'], 'readwrite');
+                const store = transaction.objectStore('dictations');
+                
+                let successCount = 0;
+                let errorCount = 0;
+                let duplicateCount = 0;
+                
+                // 处理每条记录
+                const processNextRecord = (index) => {
+                    if (index >= importedData.dictations.length) {
+                        // 所有记录处理完毕
+                        transaction.oncomplete = function() {
+                            alert(`导入完成！\n成功：${successCount} 条\n重复：${duplicateCount} 条\n错误：${errorCount} 条`);
+                            // 重新加载历史记录
+                            loadHistory();
+                        };
+                        return;
+                    }
+                    
+                    const dictation = importedData.dictations[index];
+                    
+                    // 检查记录是否已存在
+                    const checkRequest = store.get(dictation.id);
+                    
+                    checkRequest.onsuccess = function() {
+                        if (checkRequest.result) {
+                            // 记录已存在
+                            duplicateCount++;
+                            processNextRecord(index + 1);
+                        } else {
+                            // 添加新记录
+                            const addRequest = store.add(dictation);
+                            
+                            addRequest.onsuccess = function() {
+                                successCount++;
+                                processNextRecord(index + 1);
+                            };
+                            
+                            addRequest.onerror = function() {
+                                errorCount++;
+                                processNextRecord(index + 1);
+                            };
+                        }
+                    };
+                    
+                    checkRequest.onerror = function() {
+                        errorCount++;
+                        processNextRecord(index + 1);
+                    };
+                };
+                
+                // 开始处理第一条记录
+                processNextRecord(0);
+            };
+            
+            request.onerror = function() {
+                alert('导入失败：数据库打开错误');
+            };
+            
+        } catch (error) {
+            alert(`导入失败：${error.message}`);
+        }
+    };
+    
+    reader.onerror = function() {
+        alert('读取文件失败');
+    };
+    
+    reader.readAsText(file);
 }

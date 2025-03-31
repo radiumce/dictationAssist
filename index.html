@@ -113,6 +113,23 @@
         <!-- 历史记录页面 -->
         <div id="history-page" class="bg-white rounded-lg shadow-sm p-6 mb-6 hidden">
             <h2 class="text-xl font-semibold mb-4 text-neutral-darker">历史记录</h2>
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex space-x-3">
+                    <button id="export-history" class="bg-primary hover:bg-primary-dark text-white text-sm py-1.5 px-3 rounded-lg transition flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        导出全部
+                    </button>
+                    <label for="import-history-input" class="bg-white border border-primary text-primary hover:bg-primary-light hover:text-primary-dark text-sm py-1.5 px-3 rounded-lg transition cursor-pointer flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        导入
+                    </label>
+                    <input type="file" id="import-history-input" accept=".json" class="hidden">
+                </div>
+            </div>
             <div id="history-list" class="mb-6 max-h-96 overflow-y-auto rounded-lg bg-neutral-lightest p-2">
                 <!-- 历史记录将在这里动态生成 -->
             </div>
