@@ -39,6 +39,204 @@ const resultWordsList = document.getElementById('result-words-list');
 const saveResultBtn = document.getElementById('save-result-btn');
 const newDictationBtn = document.getElementById('new-dictation-btn');
 
+const toastContainer = document.getElementById('toast-container');
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modalContainer = document.getElementById('modal-container');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const modalInput = document.getElementById('modal-input');
+const modalCancel = document.getElementById('modal-cancel');
+const modalConfirm = document.getElementById('modal-confirm');
+
+/**
+ * 显示 Toast 通知
+ * @param {string} message - 消息内容
+ * @param {string} type - 消息类型 'info' | 'success' | 'error' | 'warning'
+ * @param {number} duration - 持续时间(毫秒)
+ */
+function showToast(message, type = 'info', duration = 3000) {
+    // 创建 toast 元素
+    const toast = document.createElement('div');
+    toast.className = `animate-fade-in-up rounded-lg shadow-md p-3 flex items-center gap-2 max-w-xs`;
+    
+    // 根据类型设置样式
+    let bgColor, textColor, icon;
+    switch (type) {
+        case 'success':
+            bgColor = 'bg-success-light';
+            textColor = 'text-success-dark';
+            icon = `<svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>`;
+            break;
+        case 'error':
+            bgColor = 'bg-danger-light';
+            textColor = 'text-danger-dark';
+            icon = `<svg class="w-5 h-5 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>`;
+            break;
+        case 'warning':
+            bgColor = 'bg-yellow-100';
+            textColor = 'text-yellow-800';
+            icon = `<svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>`;
+            break;
+        default: // info
+            bgColor = 'bg-primary-light';
+            textColor = 'text-primary-dark';
+            icon = `<svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>`;
+    }
+    
+    toast.classList.add(bgColor, textColor);
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+    
+    // 添加到容器
+    toastContainer.appendChild(toast);
+    
+    // 设置自动消失
+    setTimeout(() => {
+        toast.classList.remove('animate-fade-in-up');
+        toast.classList.add('animate-fade-out-down');
+        
+        // 移除元素
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, duration);
+}
+
+/**
+ * 显示自定义确认对话框 (替代 window.confirm)
+ * @param {string} message - 消息内容
+ * @param {string} title - 标题 (可选)
+ * @param {string} confirmText - 确认按钮文本 (可选)
+ * @param {string} cancelText - 取消按钮文本 (可选)
+ * @returns {Promise<boolean>} - 用户选择确认返回 true，取消返回 false
+ */
+function showConfirm(message, title = '确认操作', confirmText = '确认', cancelText = '取消') {
+    return new Promise((resolve) => {
+        // 设置对话框内容
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        modalInput.classList.add('hidden');
+        
+        // 修改按钮文本
+        modalCancel.textContent = cancelText;
+        modalConfirm.textContent = confirmText;
+        
+        // 显示对话框
+        modalBackdrop.classList.remove('hidden');
+        
+        // 按钮事件
+        const handleConfirm = () => {
+            modalBackdrop.classList.add('hidden');
+            cleanup();
+            resolve(true);
+        };
+        
+        const handleCancel = () => {
+            modalBackdrop.classList.add('hidden');
+            cleanup();
+            resolve(false);
+        };
+        
+        const handleOutsideClick = (e) => {
+            if (e.target === modalBackdrop) {
+                handleCancel();
+            }
+        };
+        
+        // 添加事件监听
+        modalConfirm.addEventListener('click', handleConfirm);
+        modalCancel.addEventListener('click', handleCancel);
+        modalBackdrop.addEventListener('click', handleOutsideClick);
+        
+        // 清理函数
+        function cleanup() {
+            modalConfirm.removeEventListener('click', handleConfirm);
+            modalCancel.removeEventListener('click', handleCancel);
+            modalBackdrop.removeEventListener('click', handleOutsideClick);
+        }
+    });
+}
+
+/**
+ * 显示自定义输入对话框 (替代 window.prompt)
+ * @param {string} message - 消息内容
+ * @param {string} defaultValue - 默认值 (可选)
+ * @param {string} title - 标题 (可选)
+ * @param {string} confirmText - 确认按钮文本 (可选)
+ * @param {string} cancelText - 取消按钮文本 (可选)
+ * @returns {Promise<string|null>} - 用户输入的值，取消返回 null
+ */
+function showPrompt(message, defaultValue = '', title = '请输入', confirmText = '确认', cancelText = '取消') {
+    return new Promise((resolve) => {
+        // 设置对话框内容
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        modalInput.value = defaultValue;
+        modalInput.classList.remove('hidden');
+        
+        // 修改按钮文本
+        modalCancel.textContent = cancelText;
+        modalConfirm.textContent = confirmText;
+        
+        // 显示对话框
+        modalBackdrop.classList.remove('hidden');
+        
+        // 聚焦输入框
+        setTimeout(() => {
+            modalInput.focus();
+        }, 100);
+        
+        // 按钮事件
+        const handleConfirm = () => {
+            const value = modalInput.value;
+            modalBackdrop.classList.add('hidden');
+            cleanup();
+            resolve(value);
+        };
+        
+        const handleCancel = () => {
+            modalBackdrop.classList.add('hidden');
+            cleanup();
+            resolve(null);
+        };
+        
+        const handleOutsideClick = (e) => {
+            if (e.target === modalBackdrop) {
+                handleCancel();
+            }
+        };
+        
+        const handleKeydown = (e) => {
+            if (e.key === 'Enter') {
+                handleConfirm();
+            } else if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        // 添加事件监听
+        modalConfirm.addEventListener('click', handleConfirm);
+        modalCancel.addEventListener('click', handleCancel);
+        modalBackdrop.addEventListener('click', handleOutsideClick);
+        modalInput.addEventListener('keydown', handleKeydown);
+        
+        // 清理函数
+        function cleanup() {
+            modalConfirm.removeEventListener('click', handleConfirm);
+            modalCancel.removeEventListener('click', handleCancel);
+            modalBackdrop.removeEventListener('click', handleOutsideClick);
+            modalInput.removeEventListener('keydown', handleKeydown);
+        }
+    });
+}
+
 // 防止按钮短时间内被连续点击的函数
 function debounceButton(button, callback, delay = 500) {
     if (isButtonDisabled) return;
@@ -63,31 +261,6 @@ function debounceButton(button, callback, delay = 500) {
     }, delay);
 }
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-    // 按钮事件监听 - 使用 debounce 防止快速连续点击
-    startDictationBtn.addEventListener('click', () => debounceButton(startDictationBtn, startDictation));
-    loadHistoryBtn.addEventListener('click', () => debounceButton(loadHistoryBtn, loadHistory));
-    unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
-    nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
-    nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));
-    startDictationFromHistoryBtn.addEventListener('click', () => debounceButton(startDictationFromHistoryBtn, startDictationFromHistory));
-    finishBtn.addEventListener('click', () => debounceButton(finishBtn, showResults));
-    saveResultBtn.addEventListener('click', () => debounceButton(saveResultBtn, saveResults));
-    newDictationBtn.addEventListener('click', () => debounceButton(newDictationBtn, backToInput));
-    
-    // 导出和导入历史记录事件监听
-    exportHistoryBtn.addEventListener('click', () => debounceButton(exportHistoryBtn, exportAllHistory));
-    importHistoryInput.addEventListener('change', (event) => {
-        if (event.target.files.length > 0) {
-            importHistory(event.target.files[0]);
-        }
-    });
-    
-    // 初始加载历史记录
-    initDB();
-});
-
 // 汉字转拼音函数（简化版，实际应用中可能需要更复杂的转换库）
 function toPinyin(word) {
     // 这里只是一个简单的模拟，实际应用中应该使用专业的汉字转拼音库
@@ -99,7 +272,7 @@ function toPinyin(word) {
     }
     
     // 如果没有按照格式输入，则返回原词，提示用户
-    alert(`请按照"汉字(拼音)"的格式输入单词，例如：苹果(píng guǒ)`);
+    showToast(`请按照"汉字(拼音)"的格式输入单词，例如：苹果(píng guǒ)`, 'warning');
     return word;
 }
 
@@ -107,7 +280,7 @@ function toPinyin(word) {
 function startDictation() {
     const wordsText = wordsInput.value.trim();
     if (!wordsText) {
-        alert('请输入单词！');
+        showToast('请输入单词！', 'error');
         return;
     }
 
@@ -302,9 +475,9 @@ function showConfirmationPage() {
 }
 
 // 从历史记录开始听写
-function startDictationFromHistory() {
+async function startDictationFromHistory() {
     if (unknownWords.length === 0) {
-        alert('请先选择需要听写的单词！');
+        showToast('请先选择需要听写的单词！', 'error');
         return;
     }
     
@@ -437,7 +610,7 @@ function showResults() {
 }
 
 // 保存结果到 IndexedDB
-function saveResults() {
+async function saveResults() {
     const timestamp = new Date().toISOString();
     
     // 创建一个包含所有初始单词最新状态的数组
@@ -475,16 +648,16 @@ function saveResults() {
         const addRequest = store.add(dictationData);
         
         addRequest.onsuccess = function() {
-            alert('听写结果已保存！');
+            showToast('听写结果已保存！', 'success');
         };
         
         addRequest.onerror = function() {
-            alert('保存失败，请重试！');
+            showToast('保存失败，请重试！', 'error');
         };
     };
     
     request.onerror = function() {
-        alert('数据库打开失败，请重试！');
+        showToast('数据库打开失败，请重试！', 'error');
     };
 }
 
@@ -611,18 +784,18 @@ function copyToClipboard(dictation) {
     // 使用Clipboard API复制到剪贴板
     navigator.clipboard.writeText(jsonString)
         .then(() => {
-            alert('已复制到剪贴板（JSON格式）！');
+            showToast('已复制到剪贴板（JSON格式）！', 'success');
         })
         .catch(err => {
-            alert('复制失败，请重试！');
+            showToast('复制失败，请重试！', 'error');
             console.error('复制失败: ', err);
         });
 }
 
 // 添加或修改备注
-function addEditNotes(dictation) {
+async function addEditNotes(dictation) {
     const currentNotes = dictation.notes || '';
-    const newNotes = prompt('请输入备注信息：', currentNotes);
+    const newNotes = await showPrompt('请输入备注信息：', currentNotes);
     
     // 如果用户取消了，不做任何操作
     if (newNotes === null) return;
@@ -653,10 +826,11 @@ function addEditNotes(dictation) {
 }
 
 // 删除历史记录项
-function deleteHistoryItem(id) {
-    if (!confirm('确定要删除这条历史记录吗？此操作不可撤销。')) {
-        return;
-    }
+async function deleteHistoryItem(id) {
+    const confirmed = await showConfirm('确定要删除这条历史记录吗？此操作不可撤销。', '删除确认');
+    
+    // 如果用户取消了，不做任何操作
+    if (!confirmed) return;
     
     const request = indexedDB.open('DictationAssistant', 1);
     
@@ -669,13 +843,13 @@ function deleteHistoryItem(id) {
         const deleteRequest = store.delete(id);
         
         deleteRequest.onsuccess = function() {
-            alert('历史记录已删除！');
+            showToast('历史记录已删除！', 'success');
             // 重新加载历史记录
             loadHistory();
         };
         
         deleteRequest.onerror = function() {
-            alert('删除失败，请重试！');
+            showToast('删除失败，请重试！', 'error');
         };
     };
 }
@@ -801,7 +975,7 @@ function exportAllHistory() {
             const dictations = getAllRequest.result;
             
             if (dictations.length === 0) {
-                alert('暂无历史记录可导出');
+                showToast('暂无历史记录可导出', 'warning');
                 return;
             }
             
@@ -830,12 +1004,12 @@ function exportAllHistory() {
         };
         
         getAllRequest.onerror = function() {
-            alert('导出失败：无法获取历史记录');
+            showToast('导出失败：无法获取历史记录', 'error');
         };
     };
     
     request.onerror = function() {
-        alert('导出失败：数据库打开错误');
+        showToast('导出失败：数据库打开错误', 'error');
     };
 }
 
@@ -870,7 +1044,7 @@ function importHistory(file) {
                     if (index >= importedData.dictations.length) {
                         // 所有记录处理完毕
                         transaction.oncomplete = function() {
-                            alert(`导入完成！\n成功：${successCount} 条\n重复：${duplicateCount} 条\n错误：${errorCount} 条`);
+                            showToast(`导入完成！\n成功：${successCount} 条\n重复：${duplicateCount} 条\n错误：${errorCount} 条`, 'success');
                             // 重新加载历史记录
                             loadHistory();
                         };
@@ -914,17 +1088,42 @@ function importHistory(file) {
             };
             
             request.onerror = function() {
-                alert('导入失败：数据库打开错误');
+                showToast('导入失败：数据库打开错误', 'error');
             };
             
         } catch (error) {
-            alert(`导入失败：${error.message}`);
+            showToast(`导入失败：${error.message}`, 'error');
         }
     };
     
     reader.onerror = function() {
-        alert('读取文件失败');
+        showToast('读取文件失败', 'error');
     };
     
     reader.readAsText(file);
 }
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    // 按钮事件监听 - 使用 debounce 防止快速连续点击
+    startDictationBtn.addEventListener('click', () => debounceButton(startDictationBtn, startDictation));
+    loadHistoryBtn.addEventListener('click', () => debounceButton(loadHistoryBtn, loadHistory));
+    unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
+    nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
+    nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));
+    startDictationFromHistoryBtn.addEventListener('click', () => debounceButton(startDictationFromHistoryBtn, startDictationFromHistory));
+    finishBtn.addEventListener('click', () => debounceButton(finishBtn, showResults));
+    saveResultBtn.addEventListener('click', () => debounceButton(saveResultBtn, saveResults));
+    newDictationBtn.addEventListener('click', () => debounceButton(newDictationBtn, backToInput));
+    
+    // 导出和导入历史记录事件监听
+    exportHistoryBtn.addEventListener('click', () => debounceButton(exportHistoryBtn, exportAllHistory));
+    importHistoryInput.addEventListener('change', (event) => {
+        if (event.target.files.length > 0) {
+            importHistory(event.target.files[0]);
+        }
+    });
+    
+    // 初始加载历史记录
+    initDB();
+});

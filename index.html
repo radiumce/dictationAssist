@@ -83,6 +83,33 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #4b5563;
         }
+        /* Toast 和 Modal 动画 */
+        @keyframes fade-in-up {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fade-out-down {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease forwards;
+        }
+        .animate-fade-out-down {
+            animation: fade-out-down 0.3s ease forwards;
+        }
     </style>
 </head>
 <body class="bg-neutral-lighter min-h-screen">
@@ -201,6 +228,28 @@
                 <div class="flex justify-between space-x-4">
                     <button id="save-result-btn" class="bg-success hover:bg-success-dark text-white font-medium py-2 px-6 rounded-lg transition">保存结果</button>
                     <button id="new-dictation-btn" class="bg-white border border-primary text-primary hover:bg-primary-light hover:text-primary-dark font-medium py-2 px-6 rounded-lg transition">新的听写</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 自定义 Toast 消息系统 -->
+        <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+            <!-- Toast 消息会动态插入到这里 -->
+        </div>
+        
+        <!-- 自定义 Modal 对话框 -->
+        <div id="modal-backdrop" class="fixed inset-0 bg-neutral-darker bg-opacity-40 z-40 hidden flex items-center justify-center">
+            <div id="modal-container" class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 animate-fade-in-up">
+                <div id="modal-header" class="px-6 py-4 border-b border-neutral-light">
+                    <h3 id="modal-title" class="text-lg font-semibold text-neutral-darker">对话框标题</h3>
+                </div>
+                <div id="modal-content" class="px-6 py-4">
+                    <p id="modal-message" class="text-neutral-dark mb-2">对话框内容</p>
+                    <input id="modal-input" class="w-full border border-neutral-light rounded-lg p-2 mt-2 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition outline-none hidden" placeholder="输入内容" />
+                </div>
+                <div id="modal-footer" class="px-6 py-3 border-t border-neutral-light flex justify-end space-x-3">
+                    <button id="modal-cancel" class="bg-white border border-neutral text-neutral-dark hover:bg-neutral-light font-medium py-1.5 px-4 rounded-lg transition">取消</button>
+                    <button id="modal-confirm" class="bg-primary hover:bg-primary-dark text-white font-medium py-1.5 px-4 rounded-lg transition">确认</button>
                 </div>
             </div>
         </div>
