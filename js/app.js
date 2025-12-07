@@ -1,3 +1,32 @@
+// 遗忘度颜色常量（浅色系，适合黑色文字）
+const FORGOTTEN_COLORS = {
+    0: 'bg-green-100',    // 已掌握 - 浅绿色
+    1: 'bg-yellow-100',   // 遗忘度1 - 浅黄色
+    2: 'bg-orange-100',   // 遗忘度2 - 浅橙色
+    3: 'bg-red-100',      // 遗忘度3 - 浅红色
+    4: 'bg-pink-100',     // 遗忘度4 - 浅粉色
+    5: 'bg-rose-200',     // 遗忘度5及以上 - 玫瑰色
+};
+
+/**
+ * 根据遗忘度获取背景颜色类名
+ * @param {number} forgottenCount - 遗忘度
+ * @returns {string} - Tailwind CSS 背景颜色类名
+ */
+function getForgottenColorClass(forgottenCount) {
+    if (forgottenCount <= 0) return FORGOTTEN_COLORS[0];
+    if (forgottenCount >= 5) return FORGOTTEN_COLORS[5];
+    return FORGOTTEN_COLORS[forgottenCount];
+}
+
+/**
+ * 获取所有遗忘度颜色类名（用于移除旧颜色）
+ * @returns {string[]} - 所有颜色类名数组
+ */
+function getAllForgottenColorClasses() {
+    return Object.values(FORGOTTEN_COLORS);
+}
+
 // 全局变量
 let allWords = []; // 所有单词
 let initialWords = []; // 初始输入的所有单词
@@ -323,14 +352,16 @@ function updateDictationUI() {
     prevBtn.disabled = currentWordIndex === 0;
     
     // 更新卡片背景色和“不会”按钮状态
+    // 先移除所有可能的背景色
+    wordCard.classList.remove('bg-white');
+    getAllForgottenColorClasses().forEach(c => wordCard.classList.remove(c));
+    
     if (currentWord.isUnknown) {
-        // 已标记为不会：卡片背景浅粉红色，禁用“不会”按钮
-        wordCard.classList.remove('bg-white');
-        wordCard.classList.add('bg-danger-light');
+        // 已标记为不会：使用遗忘度对应的颜色，禁用"不会"按钮
+        wordCard.classList.add(getForgottenColorClass(currentWord.forgottenCount));
         unknownBtn.disabled = true;
     } else {
-        // 未标记：卡片背景白色，启用“不会”按钮
-        wordCard.classList.remove('bg-danger-light');
+        // 未标记：卡片背景白色，启用"不会"按钮
         wordCard.classList.add('bg-white');
         unknownBtn.disabled = false;
     }
@@ -425,20 +456,8 @@ function showConfirmationPage() {
             groupedWords[forgottenCount].forEach(word => {
                 const wordItem = document.createElement('div');
                 
-                // 决定颜色: 遗忘度越高颜色越深
-                let bgColorClass = 'bg-neutral-lightest';
-                if (word.isUnknown) {
-                    bgColorClass = 'bg-danger-light';
-                } else if (forgottenCount > 0) {
-                    // 根据遗忘度设置不同深度的颜色
-                    if (forgottenCount >= 3) {
-                        bgColorClass = 'bg-danger-light';
-                    } else if (forgottenCount == 2) {
-                        bgColorClass = 'bg-neutral-light';
-                    } else if (forgottenCount == 1) {
-                        bgColorClass = 'bg-success-light';
-                    }
-                }
+                // 使用统一的遗忘度颜色
+                const bgColorClass = getForgottenColorClass(word.forgottenCount);
                 
                 wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} cursor-pointer hover:shadow-sm transition`;
                 wordItem.textContent = `${word.word} (${word.forgottenCount})`;
@@ -452,8 +471,9 @@ function showConfirmationPage() {
                             word.forgottenCount += 1;
                         }
                         
-                        wordItem.classList.remove('bg-neutral-lightest', 'bg-danger-light', 'bg-neutral-light', 'bg-success-light');
-                        wordItem.classList.add('bg-danger-light');
+                        // 更新颜色
+                        getAllForgottenColorClasses().forEach(c => wordItem.classList.remove(c));
+                        wordItem.classList.add(getForgottenColorClass(word.forgottenCount));
                         
                         // 如果不在不会列表中，添加到不会列表
                         if (!unknownWords.some(w => w.word === word.word)) {
@@ -562,15 +582,8 @@ function updateUnknownWordsList() {
     unknownWords.forEach(word => {
         const wordItem = document.createElement('div');
         
-        // 根据遗忘度设置不同深度的颜色
-        let bgColorClass = 'bg-danger-light';
-        if (word.forgottenCount >= 3) {
-            bgColorClass = 'bg-danger';
-        } else if (word.forgottenCount == 2) {
-            bgColorClass = 'bg-danger-light';
-        } else if (word.forgottenCount == 1) {
-            bgColorClass = 'bg-danger-light bg-opacity-50';
-        }
+        // 使用统一的遗忘度颜色
+        const bgColorClass = getForgottenColorClass(word.forgottenCount);
         
         wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} text-neutral-darker`;
         wordItem.textContent = `${word.word} (${word.forgottenCount})`;
@@ -620,15 +633,8 @@ function showResults() {
             groupedWords[forgottenCount].forEach(word => {
                 const wordItem = document.createElement('div');
                 
-                // 决定颜色: 遗忘度越高颜色越深
-                let bgColorClass = 'bg-success-light';
-                if (forgottenCount >= 3) {
-                    bgColorClass = 'bg-danger';
-                } else if (forgottenCount == 2) {
-                    bgColorClass = 'bg-danger-light';
-                } else if (forgottenCount == 1) {
-                    bgColorClass = 'bg-neutral-light';
-                }
+                // 使用统一的遗忘度颜色
+                const bgColorClass = getForgottenColorClass(word.forgottenCount);
                 
                 wordItem.className = `p-3 border border-neutral-light rounded-lg ${bgColorClass} hover:shadow-sm transition`;
                 wordItem.textContent = `${word.word} (${word.forgottenCount})`;
