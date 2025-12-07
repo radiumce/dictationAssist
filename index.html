@@ -202,9 +202,19 @@
                 </div>
                 
                 <div class="mb-8 bg-neutral-lightest p-4 rounded-lg">
-                    <h3 class="text-lg font-medium mb-3 text-neutral-darker">不会的单词</h3>
+                    <h3 class="text-lg font-medium mb-3 text-neutral-darker">待听写词汇</h3>
+                    
+                    <!-- 遗忘度筛选滑动条（仅从历史记录进入时显示） -->
+                    <div id="forgotten-filter" class="mb-4 hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm text-neutral-dark">添加遗忘度 ≥ <span id="forgotten-threshold-value" class="font-medium text-primary">1</span> 的词汇</label>
+                            <button id="apply-filter-btn" class="bg-primary hover:bg-primary-dark text-white text-sm py-1 px-3 rounded-lg transition">应用筛选</button>
+                        </div>
+                        <input type="range" id="forgotten-threshold" min="1" max="5" value="1" class="w-full h-2 bg-neutral-light rounded-lg appearance-none cursor-pointer accent-primary">
+                    </div>
+                    
                     <div id="unknown-words-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        <!-- 不会的单词将在这里动态生成 -->
+                        <!-- 待听写的单词将在这里动态生成 -->
                     </div>
                 </div>
                 

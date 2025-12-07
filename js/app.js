@@ -62,6 +62,10 @@ const nextBtn = document.getElementById('next-btn');
 
 const allWordsList = document.getElementById('all-words-list');
 const unknownWordsList = document.getElementById('unknown-words-list');
+const forgottenFilter = document.getElementById('forgotten-filter');
+const forgottenThreshold = document.getElementById('forgotten-threshold');
+const forgottenThresholdValue = document.getElementById('forgotten-threshold-value');
+const applyFilterBtn = document.getElementById('apply-filter-btn');
 const nextRoundBtn = document.getElementById('next-round-btn');
 const startDictationFromHistoryBtn = document.getElementById('start-dictation-btn');
 const finishBtn = document.getElementById('finish-btn');
@@ -494,12 +498,13 @@ function showConfirmationPage() {
     
     // 根据来源和不会的单词数量显示不同的按钮
     if (isFromHistory) {
-        // 从历史记录加载，显示"进入听写"按钮
+        // 从历史记录加载，显示"进入听写"按钮和遗忘度筛选条
         nextRoundBtn.classList.add('hidden');
         finishBtn.classList.add('hidden');
         startDictationFromHistoryBtn.classList.remove('hidden');
+        forgottenFilter.classList.remove('hidden');
         
-        // 如果不会的单词列表为空，禁用"进入听写"按钮
+        // 如果待听写的单词列表为空，禁用"进入听写"按钮
         if (unknownWords.length === 0) {
             startDictationFromHistoryBtn.disabled = true;
             startDictationFromHistoryBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -508,8 +513,9 @@ function showConfirmationPage() {
             startDictationFromHistoryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     } else {
-        // 正常听写流程
+        // 正常听写流程，隐藏遗忘度筛选条
         startDictationFromHistoryBtn.classList.add('hidden');
+        forgottenFilter.classList.add('hidden');
         
         if (unknownWords.length === 0) {
             nextRoundBtn.classList.add('hidden');
@@ -589,6 +595,38 @@ function updateUnknownWordsList() {
         wordItem.textContent = `${word.word} (${word.forgottenCount})`;
         unknownWordsList.appendChild(wordItem);
     });
+}
+
+// 应用遗忘度筛选（从历史记录进入时使用）
+function applyForgottenFilter() {
+    const threshold = parseInt(forgottenThreshold.value);
+    
+    // 从 initialWords 中筛选出遗忘度 >= threshold 的词
+    const filteredWords = initialWords.filter(word => word.forgottenCount >= threshold);
+    
+    if (filteredWords.length === 0) {
+        showToast(`没有遗忘度 ≥ ${threshold} 的词汇`, 'warning');
+        return;
+    }
+    
+    // 将筛选出的词添加到待听写列表（避免重复）
+    filteredWords.forEach(word => {
+        if (!unknownWords.some(w => w.word === word.word)) {
+            word.isUnknown = true;
+            unknownWords.push(word);
+        }
+    });
+    
+    // 更新待听写词汇列表显示
+    updateUnknownWordsList();
+    
+    // 更新"进入听写"按钮状态
+    if (unknownWords.length > 0) {
+        startDictationFromHistoryBtn.disabled = false;
+        startDictationFromHistoryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    
+    showToast(`已添加 ${filteredWords.length} 个遗忘度 ≥ ${threshold} 的词汇`, 'success');
 }
 
 // 显示结果
@@ -1165,6 +1203,12 @@ document.addEventListener('DOMContentLoaded', () => {
             importHistory(event.target.files[0]);
         }
     });
+    
+    // 遗忘度筛选滑动条事件监听
+    forgottenThreshold.addEventListener('input', () => {
+        forgottenThresholdValue.textContent = forgottenThreshold.value;
+    });
+    applyFilterBtn.addEventListener('click', () => debounceButton(applyFilterBtn, applyForgottenFilter));
     
     // 初始加载历史记录
     initDB();
