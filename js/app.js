@@ -25,7 +25,9 @@ const importHistoryInput = document.getElementById('import-history-input');
 
 const progressText = document.getElementById('progress');
 const unknownCountText = document.getElementById('unknown-count');
+const wordCard = document.getElementById('word-card');
 const wordPinyin = document.getElementById('word-pinyin');
+const prevBtn = document.getElementById('prev-btn');
 const unknownBtn = document.getElementById('unknown-btn');
 const nextBtn = document.getElementById('next-btn');
 
@@ -316,17 +318,37 @@ function updateDictationUI() {
     progressText.textContent = `${currentWordIndex + 1}/${allWords.length}`;
     unknownCountText.textContent = `不会：${unknownWords.length}`;
     wordPinyin.textContent = currentWord.pinyin;
+    
+    // 更新“上一个”按钮的禁用状态
+    prevBtn.disabled = currentWordIndex === 0;
+    
+    // 更新卡片背景色和“不会”按钮状态
+    if (currentWord.isUnknown) {
+        // 已标记为不会：卡片背景浅粉红色，禁用“不会”按钮
+        wordCard.classList.remove('bg-white');
+        wordCard.classList.add('bg-danger-light');
+        unknownBtn.disabled = true;
+    } else {
+        // 未标记：卡片背景白色，启用“不会”按钮
+        wordCard.classList.remove('bg-danger-light');
+        wordCard.classList.add('bg-white');
+        unknownBtn.disabled = false;
+    }
 }
 
 // 标记为不会
 function markAsUnknown() {
     const currentWord = allWords[currentWordIndex];
-    currentWord.isUnknown = true;
-    currentWord.forgottenCount += 1;
     
-    // 如果不在不会列表中，添加到不会列表
-    if (!unknownWords.some(w => w.word === currentWord.word)) {
-        unknownWords.push(currentWord);
+    // 只有当该词在本轮次中尚未被标记为"不会"时，才增加遗忘度
+    if (!currentWord.isUnknown) {
+        currentWord.isUnknown = true;
+        currentWord.forgottenCount += 1;
+        
+        // 添加到不会列表
+        if (!unknownWords.some(w => w.word === currentWord.word)) {
+            unknownWords.push(currentWord);
+        }
     }
     
     // 进入下一个单词
@@ -336,18 +358,30 @@ function markAsUnknown() {
 
 // 下一个单词
 function nextWord() {
-    // 如果点击"下一个"，则当前单词被标记为"会了"
     const currentWord = allWords[currentWordIndex];
-    currentWord.isUnknown = false;
     
-    // 从不会列表中移除
-    const index = unknownWords.findIndex(w => w.word === currentWord.word);
-    if (index !== -1) {
-        unknownWords.splice(index, 1);
+    // 只有当该词尚未被标记为"不会"时，才将其标记为"会了"
+    // 如果已经标记为"不会"，则保持其状态不变，只是跳到下一个词
+    if (!currentWord.isUnknown) {
+        currentWord.isUnknown = false;
+        
+        // 从不会列表中移除（以防万一）
+        const index = unknownWords.findIndex(w => w.word === currentWord.word);
+        if (index !== -1) {
+            unknownWords.splice(index, 1);
+        }
     }
     
     currentWordIndex++;
     updateDictationUI();
+}
+
+// 上一个单词
+function prevWord() {
+    if (currentWordIndex > 0) {
+        currentWordIndex--;
+        updateDictationUI();
+    }
 }
 
 // 显示确认页面
@@ -481,14 +515,14 @@ async function startDictationFromHistory() {
         return;
     }
     
-    // 只听写不会的单词
+    // 只听写选中的单词，重置本轮状态
     allWords = unknownWords.map(word => ({
         ...word,
-        isUnknown: true  // 确保这些单词的状态是"不会"
+        isUnknown: false  // 本轮尚未标记
     }));
     
-    // 保持一份初始的不会单词列表，这样用户点击"下一个"时能从列表中移除
-    unknownWords = [...allWords];
+    // 本轮不会的词从0开始
+    unknownWords = [];
     currentWordIndex = 0;
     currentRound = 1;
     isFromHistory = false; // 重置标记，进入正常听写流程
@@ -506,13 +540,14 @@ function startNextRound() {
         return;
     }
     
-    // 只听写不会的单词
+    // 只听写上一轮不会的单词，重置本轮状态
     allWords = unknownWords.map(word => ({
         ...word,
-        isUnknown: true  // 确保这些单词的状态是"不会"
+        isUnknown: false  // 本轮尚未标记
     }));
     
-    unknownWords = [...allWords]; // 复制一份，确保初始状态所有单词都在"不会"列表中
+    // 本轮不会的词从0开始
+    unknownWords = [];
     currentWordIndex = 0;
     currentRound++;
     
@@ -1108,6 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 按钮事件监听 - 使用 debounce 防止快速连续点击
     startDictationBtn.addEventListener('click', () => debounceButton(startDictationBtn, startDictation));
     loadHistoryBtn.addEventListener('click', () => debounceButton(loadHistoryBtn, loadHistory));
+    prevBtn.addEventListener('click', () => debounceButton(prevBtn, prevWord));
     unknownBtn.addEventListener('click', () => debounceButton(unknownBtn, markAsUnknown));
     nextBtn.addEventListener('click', () => debounceButton(nextBtn, nextWord));
     nextRoundBtn.addEventListener('click', () => debounceButton(nextRoundBtn, startNextRound));

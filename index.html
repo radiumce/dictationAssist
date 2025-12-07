@@ -179,9 +179,12 @@
                     </div>
                 </div>
                 
-                <div class="flex justify-between space-x-4">
-                    <button id="unknown-btn" class="bg-danger hover:bg-danger-dark text-white font-medium py-2 px-6 rounded-lg transition w-full md:w-auto">不会</button>
-                    <button id="next-btn" class="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-lg transition w-full md:w-auto">下一个</button>
+                <div class="flex justify-between items-center">
+                    <button id="unknown-btn" class="bg-danger hover:bg-danger-dark text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">不会</button>
+                    <div class="flex space-x-3">
+                        <button id="prev-btn" class="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>上一个</button>
+                        <button id="next-btn" class="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-lg transition">下一个</button>
+                    </div>
                 </div>
             </div>
         </div>
