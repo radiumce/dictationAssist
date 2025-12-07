@@ -1037,6 +1037,23 @@ function navigateToBreadcrumb(index) {
     }
 }
 
+// 初始化数据库
+function initDB() {
+    const request = indexedDB.open('DictationAssistant', 1);
+    
+    request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        // 创建对象存储空间
+        if (!db.objectStoreNames.contains('dictations')) {
+            db.createObjectStore('dictations', { keyPath: 'id' });
+        }
+    };
+    
+    request.onerror = function() {
+        console.error('数据库初始化失败');
+    };
+}
+
 // 导出全部历史记录
 function exportAllHistory() {
     // 打开 IndexedDB 数据库
