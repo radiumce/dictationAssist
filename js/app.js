@@ -710,7 +710,10 @@ async function saveResults() {
     // 打开或创建 IndexedDB 数据库
     const request = indexedDB.open('DictationAssistant', 1);
     
+    let needsUpgrade = false;
+    
     request.onupgradeneeded = function(event) {
+        needsUpgrade = true;
         const db = event.target.result;
         // 创建对象存储空间
         if (!db.objectStoreNames.contains('dictations')) {
@@ -720,23 +723,43 @@ async function saveResults() {
     
     request.onsuccess = function(event) {
         const db = event.target.result;
-        const transaction = db.transaction(['dictations'], 'readwrite');
-        const store = transaction.objectStore('dictations');
         
-        // 添加数据
-        const addRequest = store.add(dictationData);
-        
-        addRequest.onsuccess = function() {
-            showToast('听写结果已保存！', 'success');
-        };
-        
-        addRequest.onerror = function() {
-            showToast('保存失败，请重试！', 'error');
-        };
+        // 如果刚刚进行了升级，需要等待升级事务完成
+        if (needsUpgrade) {
+            // 关闭数据库，重新打开以确保 object store 可用
+            db.close();
+            const retryRequest = indexedDB.open('DictationAssistant', 1);
+            retryRequest.onsuccess = function(e) {
+                const retryDb = e.target.result;
+                saveToStore(retryDb, dictationData);
+            };
+            retryRequest.onerror = function() {
+                showToast('数据库打开失败，请重试！', 'error');
+            };
+        } else {
+            saveToStore(db, dictationData);
+        }
     };
     
     request.onerror = function() {
         showToast('数据库打开失败，请重试！', 'error');
+    };
+}
+
+// 保存数据到 object store
+function saveToStore(db, dictationData) {
+    const transaction = db.transaction(['dictations'], 'readwrite');
+    const store = transaction.objectStore('dictations');
+    
+    // 添加数据
+    const addRequest = store.add(dictationData);
+    
+    addRequest.onsuccess = function() {
+        showToast('听写结果已保存！', 'success');
+    };
+    
+    addRequest.onerror = function() {
+        showToast('保存失败，请重试！', 'error');
     };
 }
 
